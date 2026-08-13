@@ -1,0 +1,473 @@
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <iomanip>
+#include <cstdio>
+
+using namespace std;
+
+// ============================================================
+// BankAccount Class
+// Demonstrates Object-Oriented Programming and Encapsulation
+// ============================================================
+class BankAccount {
+private:
+    int accountNumber;
+    string name;
+    double balance;
+
+public:
+    // Default constructor
+    BankAccount() {
+        accountNumber = 0;
+        name = "";
+        balance = 0.0;
+    }
+
+    // Parameterized constructor
+    BankAccount(int accNo, const string& customerName, double initialBalance) {
+        accountNumber = accNo;
+        name = customerName;
+        balance = initialBalance;
+    }
+
+    // Getter functions
+    int getAccountNumber() const {
+        return accountNumber;
+    }
+
+    string getName() const {
+        return name;
+    }
+
+    double getBalance() const {
+        return balance;
+    }
+
+    // Deposit money
+    void deposit(double amount) {
+        if (amount <= 0) {
+            cout << "Invalid deposit amount.\n";
+            return;
+        }
+
+        balance += amount;
+        cout << "Amount deposited successfully.\n";
+    }
+
+    // Withdraw money
+    bool withdraw(double amount) {
+        if (amount <= 0) {
+            cout << "Invalid withdrawal amount.\n";
+            return false;
+        }
+
+        if (amount > balance) {
+            cout << "Insufficient balance.\n";
+            return false;
+        }
+
+        balance -= amount;
+        cout << "Amount withdrawn successfully.\n";
+        return true;
+    }
+
+    // Display account details
+    void display() const {
+        cout << "\n--------------------------------\n";
+        cout << "Account Number : " << accountNumber << endl;
+        cout << "Customer Name  : " << name << endl;
+        cout << fixed << setprecision(2);
+        cout << "Balance        : Rs. " << balance << endl;
+        cout << "--------------------------------\n";
+    }
+};
+
+
+// ============================================================
+// Find an account from accounts.txt
+// ============================================================
+bool findAccount(int accountNumber, BankAccount& account) {
+
+    ifstream file("accounts.txt");
+
+    if (!file) {
+        return false;
+    }
+
+    int accNo;
+    string name;
+    double balance;
+
+    while (file >> accNo) {
+
+        file.ignore();
+
+        getline(file, name, '|');
+
+        file >> balance;
+
+        if (accNo == accountNumber) {
+
+            account = BankAccount(
+                accNo,
+                name,
+                balance
+            );
+
+            file.close();
+            return true;
+        }
+    }
+
+    file.close();
+    return false;
+}
+
+
+// ============================================================
+// Save a new account to file
+// ============================================================
+void saveAccount(const BankAccount& account) {
+
+    ofstream file("accounts.txt", ios::app);
+
+    if (!file) {
+        cout << "Error: Unable to open accounts.txt\n";
+        return;
+    }
+
+    file << account.getAccountNumber()
+         << "|"
+         << account.getName()
+         << "|"
+         << fixed << setprecision(2)
+         << account.getBalance()
+         << endl;
+
+    file.close();
+}
+
+
+// ============================================================
+// Update an existing account
+// ============================================================
+bool updateAccount(const BankAccount& updatedAccount) {
+
+    ifstream inputFile("accounts.txt");
+
+    if (!inputFile) {
+        return false;
+    }
+
+    ofstream tempFile("accounts_temp.txt");
+
+    if (!tempFile) {
+        inputFile.close();
+        return false;
+    }
+
+    int accNo;
+    string name;
+    double balance;
+
+    bool updated = false;
+
+    while (inputFile >> accNo) {
+
+        inputFile.ignore();
+
+        getline(inputFile, name, '|');
+
+        inputFile >> balance;
+
+        if (accNo == updatedAccount.getAccountNumber()) {
+
+            tempFile << updatedAccount.getAccountNumber()
+                     << "|"
+                     << updatedAccount.getName()
+                     << "|"
+                     << fixed << setprecision(2)
+                     << updatedAccount.getBalance()
+                     << endl;
+
+            updated = true;
+        }
+        else {
+
+            tempFile << accNo
+                     << "|"
+                     << name
+                     << "|"
+                     << fixed << setprecision(2)
+                     << balance
+                     << endl;
+        }
+    }
+
+    inputFile.close();
+    tempFile.close();
+
+    remove("accounts.txt");
+
+    rename("accounts_temp.txt", "accounts.txt");
+
+    return updated;
+}
+
+
+// ============================================================
+// Create a new bank account
+// ============================================================
+void createAccount() {
+
+    int accountNumber;
+    string name;
+    double initialBalance;
+
+    cout << "\n========== CREATE ACCOUNT ==========\n";
+
+    cout << "Enter account number: ";
+    cin >> accountNumber;
+
+    // Check whether account already exists
+    BankAccount existingAccount;
+
+    if (findAccount(accountNumber, existingAccount)) {
+
+        cout << "Account already exists.\n";
+        return;
+    }
+
+    cin.ignore();
+
+    cout << "Enter customer name: ";
+    getline(cin, name);
+
+    cout << "Enter initial deposit: ";
+    cin >> initialBalance;
+
+    if (initialBalance < 0) {
+
+        cout << "Initial balance cannot be negative.\n";
+        return;
+    }
+
+    BankAccount account(
+        accountNumber,
+        name,
+        initialBalance
+    );
+
+    saveAccount(account);
+
+    cout << "\nAccount created successfully!\n";
+
+    account.display();
+}
+
+
+// ============================================================
+// Deposit money into an account
+// ============================================================
+void depositMoney() {
+
+    int accountNumber;
+    double amount;
+
+    cout << "\n========== DEPOSIT MONEY ==========\n";
+
+    cout << "Enter account number: ";
+    cin >> accountNumber;
+
+    BankAccount account;
+
+    if (!findAccount(accountNumber, account)) {
+
+        cout << "Account not found.\n";
+        return;
+    }
+
+    cout << "Enter amount to deposit: ";
+    cin >> amount;
+
+    account.deposit(amount);
+
+    updateAccount(account);
+
+    cout << "\nUpdated Account Details:";
+    account.display();
+}
+
+
+// ============================================================
+// Withdraw money from an account
+// ============================================================
+void withdrawMoney() {
+
+    int accountNumber;
+    double amount;
+
+    cout << "\n========== WITHDRAW MONEY ==========\n";
+
+    cout << "Enter account number: ";
+    cin >> accountNumber;
+
+    BankAccount account;
+
+    if (!findAccount(accountNumber, account)) {
+
+        cout << "Account not found.\n";
+        return;
+    }
+
+    cout << "Enter amount to withdraw: ";
+    cin >> amount;
+
+    bool success = account.withdraw(amount);
+
+    if (success) {
+        updateAccount(account);
+    }
+
+    cout << "\nUpdated Account Details:";
+    account.display();
+}
+
+
+// ============================================================
+// Check account balance
+// ============================================================
+void checkBalance() {
+
+    int accountNumber;
+
+    cout << "\n========== BALANCE ENQUIRY ==========\n";
+
+    cout << "Enter account number: ";
+    cin >> accountNumber;
+
+    BankAccount account;
+
+    if (!findAccount(accountNumber, account)) {
+
+        cout << "Account not found.\n";
+        return;
+    }
+
+    account.display();
+}
+
+
+// ============================================================
+// Display all accounts
+// ============================================================
+void displayAllAccounts() {
+
+    ifstream file("accounts.txt");
+
+    if (!file) {
+
+        cout << "\nNo accounts found.\n";
+        return;
+    }
+
+    int accNo;
+    string name;
+    double balance;
+
+    bool found = false;
+
+    cout << "\n====================================\n";
+    cout << "          ALL BANK ACCOUNTS\n";
+    cout << "====================================\n";
+
+    while (file >> accNo) {
+
+        file.ignore();
+
+        getline(file, name, '|');
+
+        file >> balance;
+
+        cout << "\nAccount Number : " << accNo << endl;
+        cout << "Customer Name  : " << name << endl;
+
+        cout << fixed << setprecision(2);
+
+        cout << "Balance        : Rs. "
+             << balance
+             << endl;
+
+        cout << "------------------------------------\n";
+
+        found = true;
+    }
+
+    file.close();
+
+    if (!found) {
+
+        cout << "No accounts found.\n";
+    }
+}
+
+
+// ============================================================
+// Main Function
+// ============================================================
+int main() {
+
+    int choice;
+
+    do {
+
+        cout << "\n\n";
+        cout << "========================================\n";
+        cout << "       BANK MANAGEMENT SYSTEM\n";
+        cout << "========================================\n";
+        cout << "1. Create Account\n";
+        cout << "2. Deposit Money\n";
+        cout << "3. Withdraw Money\n";
+        cout << "4. Check Balance\n";
+        cout << "5. Display All Accounts\n";
+        cout << "6. Exit\n";
+        cout << "========================================\n";
+
+        cout << "Enter your choice: ";
+        cin >> choice;
+
+        switch (choice) {
+
+            case 1:
+                createAccount();
+                break;
+
+            case 2:
+                depositMoney();
+                break;
+
+            case 3:
+                withdrawMoney();
+                break;
+
+            case 4:
+                checkBalance();
+                break;
+
+            case 5:
+                displayAllAccounts();
+                break;
+
+            case 6:
+                cout << "\nThank you for using Bank Management System!\n";
+                break;
+
+            default:
+                cout << "\nInvalid choice. Please try again.\n";
+        }
+
+    } while (choice != 6);
+
+    return 0;
+}
